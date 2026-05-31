@@ -2,16 +2,13 @@
 
 A machine learning project predicting 30-day hospital readmission for diabetic patients.  
 *Built as part of my application for Master 2 in Data Science 
-
 ---
 
 ## 👩‍🔬 My Approach: Clinical Sense over "Black Box" AI
 
 Coming from a background in clinical research (former Clinical Research Associate), my main goal for this project was to build a model that remains **interpretable for healthcare professionals**. 
 
-Instead of throwing all the raw data into an algorithm or using mathematical dimensionality reduction like PCA (which creates unexplainable variables), I decided to engineer features based on medical logic.
-
-I grouped the numerical variables into **3 clinical dimensions**:
+Rather than applying standard, uninterpretable dimensionality reduction techniques (like PCA), I engineered **3 clinical dimensions** based on medical logic. This approach ensures the model's decision-making process remains transparent for healthcare professionals.
 
 | Dimension | Raw Variables Used | Clinical Concept |
 |---|---|---|
@@ -23,9 +20,9 @@ I grouped the numerical variables into **3 clinical dimensions**:
 
 ---
 
-## 🛠️ Key Data Science Steps Learned & Applied
+## 🛠️ Key Technical Rigor
 
-As I transition into Data Science, I made sure to apply standard methodological rigor to this dataset:
+To ensure this work meets Data Science standards:
 
 - **Preventing Data Leakage:** The train/test split was strictly performed *before* any feature engineering or weight calculation.
 - **Handling Imbalanced Data:** Since readmissions only represent ~11% of the dataset, I used `class_weight='balanced'` in my Random Forest. In healthcare, missing a high-risk patient (False Negative) is a critical error.
@@ -45,6 +42,11 @@ While an AUC of 0.644 is not perfect, it represents a solid improvement over the
 My focus here was on creating an explainable, reliable proof-of-concept rather than overfitting the data to get an artificially high score.
 
 ---
+
+## 👤 About the Author
+**Juliette Bouli-Mengue** *Aspiring Data Scientist | Former Clinical Research Associate (Oncology)*
+
+Combining expertise in clinical research with modern predictive modeling workflows.
 
 ## 🚀 How to Run the Notebook
 
