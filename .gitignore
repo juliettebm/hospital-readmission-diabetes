@@ -1,0 +1,12 @@
+ # Données brutes et nettoyées (trop volumineuses / reproductibles depuis UCI)
+data/diabetic_data.csv
+data/diabetic_data_clean.csv
+
+# Environnement Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Fichiers système
+.DS_Store
+Thumbs.db
