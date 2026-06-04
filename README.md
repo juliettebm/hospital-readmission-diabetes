@@ -1,66 +1,132 @@
-# Hospital Readmission Prediction — Diabetes 130-US
+# 🏥 Hospital Readmission Prediction — Diabetes 130-US Hospitals
 
-A machine learning project predicting 30-day hospital readmission for diabetic patients.  
-*Built as part of my application for Master 2 in Data Science 
+Predictive modelling project for 30-day hospital readmission risk in diabetic patients, built on the [Diabetes 130-US Hospitals (1999–2008)](https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008) dataset (UCI Machine Learning Repository).
+
 ---
 
-## 👩‍🔬 My Approach: Clinical Sense over "Black Box" AI
+## Objective
 
-Coming from a background in clinical research (former Clinical Research Associate), my main goal for this project was to build a model that remains **interpretable for healthcare professionals**. 
+Predict whether a diabetic patient will be readmitted to hospital within 30 days of discharge, using only three clinically interpretable composite dimensions derived from administrative data.
 
-Rather than applying standard, uninterpretable dimensionality reduction techniques (like PCA), I engineered **3 clinical dimensions** based on medical logic. This approach ensures the model's decision-making process remains transparent for healthcare professionals.
+---
 
-| Dimension | Raw Variables Used | Clinical Concept |
+## Project Structure
+
+```
+hospital-readmission-project/
+│
+├── data/
+│   ├── diabetic_data.csv              # Raw dataset (UCI)
+│   ├── diabetic_data_clean.csv        # After cleaning (output of notebook 01)
+│   └── features.csv                   # Engineered features (output of notebook 02)
+│
+├── models/
+│   ├── readmission_model.pkl          # Trained Random Forest classifier
+│   └── feature_params.pkl             # MinMaxScaler parameters (train set only)
+│
+├── Plot/                              # All saved visualisations
+│
+├── notebook/
+│   ├── 01_data_preparation.ipynb          # Data loading, cleaning, univariate analysis
+│   ├── 02_feature_engineering.ipynb       # Feature construction, correlation analysis
+│   ├── 03_modelling.ipynb                 # Model training, evaluation, explainability
+│
+├──app.py                             # Streamlit clinical decision-support interface
+│
+├── .gitignore 
+│
+└── README.md
+                            
+```
+
+---
+
+## Notebooks
+
+### `01_data_preparation.ipynb`
+- Loads the raw dataset (101,766 patients, 50 variables)
+- Detects and replaces disguised missing values (`'?'` → `NaN`)
+- Drops columns with >60% missing data
+- Performs univariate analysis on 8 key clinical variables
+- Exports `diabetic_data_clean.csv`
+
+### `02_feature_engineering.ipynb`
+- Train/test split performed **before** any feature engineering (no data leakage)
+- Correlation analysis on training set only (Pearson / point-biserial)
+- Expert-driven dimensionality reduction: 7 variables → 3 clinical dimensions
+- MinMaxScaling fitted on training set, applied to test set
+- Correlation-based weighting within each dimension
+- Exports `features.csv` and `feature_params.pkl`
+
+### `03_modelling.ipynb`
+- Reconstructs train/test split from the `split` column in `features.csv`
+- Trains a DummyClassifier naive baseline (`strategy='most_frequent'`)
+- Trains a Random Forest with 5-fold cross-validation on the training set
+- Evaluates on the held-out test set (ROC-AUC, sensitivity, specificity)
+- Produces evaluation dashboard: confusion matrix, ROC curve, feature importance
+- Exports `readmission_model.pkl`
+
+---
+
+## Clinical Framework
+
+The 7 original numeric variables are reduced to 3 interpretable dimensions:
+
+| Dimension | Variables | Clinical Concept |
 |---|---|---|
-| **1. Pathological Terrain** | `number_diagnoses` | Patient's comorbidity burden (inspired by the Charlson score). |
-| **2. Chronic Instability** | `number_inpatient`, `number_emergency`, `number_outpatient` | The patient's recent history and healthcare utilization. |
-| **3. Episode Severity** | `time_in_hospital`, `num_lab_procedures`, `num_medications` | The intensity of the current hospital stay. |
+| **Pathological Terrain** | `number_diagnoses` | Comorbidity burden (cf. Charlson score) |
+| **Chronic Instability** | `number_inpatient`, `number_emergency`, `number_outpatient` | Past healthcare utilisation |
+| **Episode Severity** | `time_in_hospital`, `num_lab_procedures`, `num_medications` | Current episode intensity |
 
-*(Note: The placement of ambiguous variables like `num_medications` was guided by empirical correlation testing rather than simple guessing).*
-
----
-
-## 🛠️ Key Technical Rigor
-
-To ensure this work meets Data Science standards:
-
-- **Preventing Data Leakage:** The train/test split was strictly performed *before* any feature engineering or weight calculation.
-- **Handling Imbalanced Data:** Since readmissions only represent ~11% of the dataset, I used `class_weight='balanced'` in my Random Forest. In healthcare, missing a high-risk patient (False Negative) is a critical error.
-- **Setting a Baseline:** I compared my model to a naive `DummyClassifier` to prove the algorithm actually learned meaningful patterns.
+Each dimension is built by MinMax scaling on the training set, then correlation-weighted aggregation.
 
 ---
 
-## 📊 Results
+## Results
 
-| Model | ROC-AUC Score |
+| Metric | Value |
 |---|---|
-| Naive baseline (Random chance) | ~ 0.500 |
-| Random Forest (with my 3 clinical axes) | **0.644** |
+| Naive baseline AUC | ≈ 0.500 |
+| Random Forest AUC (CV) | ≈ 0.644 |
+| Train set | 81,412 patients |
+| Test set | 20,354 patients |
+| Class balance | 54% not readmitted / 46% readmitted |
 
-While an AUC of 0.644 is not perfect, it represents a solid improvement over the baseline. More importantly, this score is consistent with published medical literature for models built solely on administrative hospital data (typical range: 0.62–0.70). 
-
-My focus here was on creating an explainable, reliable proof-of-concept rather than overfitting the data to get an artificially high score.
+**Chronic Instability** (prior healthcare utilisation) is the strongest predictor (~65% feature importance), consistent with established clinical evidence.
 
 ---
 
-## 👤 About the Author
-**Juliette Bouli-Mengue** *Aspiring Data Scientist | Former Clinical Research Associate (Oncology)*
+## Methodological Choices
 
-Combining expertise in clinical research with modern predictive modeling workflows.
+- **No PCA** — expert-driven reduction preserves clinical interpretability
+- **Train/test split before feature engineering** — strict leakage prevention
+- **`class_weight='balanced'`** — handles class imbalance without synthetic data generation
+- **Correlation weighting** used as a pragmatic signal-strength heuristic, not a causal claim
+- **DummyClassifier baseline** — defines a performance floor for clinical relevance assessment
 
-## 🚀 How to Run the Notebook
+---
+
+## Stack
+
+```
+Python 3.x · pandas · numpy · scikit-learn · matplotlib · seaborn · joblib · streamlit
+```
+
+---
+
+## Streamlit App
+
+A clinical decision-support interface allows manual input of patient data and returns a readmission risk score with clinical explainability.
 
 ```bash
-# 1. Clone the repository
-git clone [https://github.com/](https://github.com/)<your-username>/hospital-readmission-diabetes.git
-cd hospital-readmission-diabetes
+streamlit run app.py
+```
 
-# 2. Install dependencies
-pip install -r requirements.txt
+The app uses `readmission_model.pkl` if available, or falls back to a heuristic approximation based on the trained model's correlation coefficients.
 
-# 3. Place the dataset
-# Download from: [https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008](https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008)
-# Unzip and place `diabetic_data.csv` inside the `data/` folder.
+---
 
-# 4. Open the project
-jupyter notebook 01_readmission_diabetiques.ipynb
+## Data Source
+
+Strack, B., DeShazo, J.P., Gennings, C., et al. (2014). *Impact of HbA1c Measurement on Hospital Readmission Rates: Analysis of 70,000 Clinical Database Patient Records.* BioMed Research International.  
+Dataset: [UCI Machine Learning Repository #296](https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008)
