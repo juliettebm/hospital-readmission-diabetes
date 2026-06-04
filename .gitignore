@@ -10,7 +10,9 @@ models/readmission_model.pkl
 models/feature_params.pkl
 
 # ── Notebooks legacy ──────────────────────────────────────────────────────────
-01_readmission_diabetiques.ipynb
+01_data_preparation.ipynb
+02_feature_engineering.ipynb
+03_modelling.ipynb
 
 # ── Environnement Python ──────────────────────────────────────────────────────
 __pycache__/
