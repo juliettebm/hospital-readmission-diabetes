@@ -1,12 +1,22 @@
- # Données brutes et nettoyées (trop volumineuses / reproductibles depuis UCI)
+# ── Données ───────────────────────────────────────────────────────────────────
+# Données brutes et intermédiaires (volumineuses / reproductibles depuis UCI)
 data/diabetic_data.csv
 data/diabetic_data_clean.csv
+data/features.csv
 
-# Environnement Python
+# ── Modèles sérialisés ─────────────────────────────────────────────────────────
+# Reproductibles en relançant 03_modelling.ipynb
+models/readmission_model.pkl
+models/feature_params.pkl
+
+# ── Notebooks legacy ──────────────────────────────────────────────────────────
+01_readmission_diabetiques.ipynb
+
+# ── Environnement Python ──────────────────────────────────────────────────────
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
 
-# Fichiers système
+# ── Fichiers système ──────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
