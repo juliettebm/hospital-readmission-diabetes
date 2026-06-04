@@ -62,11 +62,7 @@ pip install -r requirements.txt
 
 ### 3. Download the dataset
 
-The raw dataset is not tracked by Git (101,766 rows, ~23 MB). Download it manually from the UCI repository:
-
-👉 [https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008](https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008)
-
-Place the file `diabetic_data.csv` in the `data/` folder.
+The raw dataset is not tracked by Git (101,766 rows, ~23 MB). Download it manually from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008) and place `diabetic_data.csv` in the `data/` folder.
 
 ### 4. Run the notebooks in order
 
