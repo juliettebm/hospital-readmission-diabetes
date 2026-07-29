@@ -5,7 +5,7 @@
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-Random%20Forest-orange?logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-App-red?logo=streamlit&logoColor=white)](https://streamlit.io/)
 
-Predictive modelling project for 30-day hospital readmission risk in diabetic patients, built on the [Diabetes 130-US Hospitals (1999–2008)](https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008) dataset (UCI Machine Learning Repository).
+Predictive modelling project for 30-day hospital readmission risk in diabetic patients, built on the [Diabetes 130-US Hospitals (1999-2008)](https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008) dataset (UCI Machine Learning Repository).
 
 ---
 
@@ -21,7 +21,7 @@ Predict whether a diabetic patient will be readmitted to hospital within 30 days
 hospital-readmission-diabetes/
 │
 ├── data/
-│   ├── diabetic_data.csv              # Raw dataset (UCI) — not tracked by Git
+│   ├── diabetic_data.csv              # Raw dataset (UCI), not tracked by Git
 │   ├── diabetic_data_clean.csv        # After cleaning (output of notebook 01)
 │   └── features.csv                   # Engineered features (output of notebook 02)
 │
@@ -42,6 +42,8 @@ hospital-readmission-diabetes/
 ├── requirements.txt
 └── README.md
 ```
+
+---
 
 ---
 
@@ -108,6 +110,50 @@ streamlit run app.py
 - Trains a Random Forest with 5-fold cross-validation on the training set
 - Evaluates on the held-out test set (ROC-AUC, sensitivity, specificity)
 - Produces evaluation dashboard: confusion matrix, ROC curve, feature importance
+- Exports `readmission_model.pkl`
+
+---
+
+## Clinical Framework
+
+The 7 original numeric variables are reduced to 3 interpretable dimensions:
+
+| Dimension                | Variables                                                   | Clinical Concept                        |
+| ------------------------ | ----------------------------------------------------------- | --------------------------------------- |
+| **Pathological Terrain** | `number_diagnoses`                                          | Comorbidity burden (cf. Charlson score) |
+| **Chronic Instability**  | `number_inpatient`, `number_emergency`, `number_outpatient` | Past healthcare utilisation             |
+| **Episode Severity**     | `time_in_hospital`, `num_lab_procedures`, `num_medications` | Current episode intensity               |
+
+Each dimension is built by MinMax scaling on the training set, then correlation-weighted aggregation.
+
+---
+
+## Results
+
+| Metric                      | Value                               |
+| --------------------------- | ----------------------------------- |
+| Naive baseline AUC          | 0.500                               |
+| Random Forest AUC (CV)      | 0.647 ± 0.002                       |
+| Random Forest AUC (test set)| **0.649**                           |
+| Train set                   | 81,412 patients                     |
+| Test set                    | 20,354 patients                     |
+| Class balance               | 54% not readmitted / 46% readmitted |
+
+**Chronic Instability** (prior healthcare utilisation) is the strongest predictor (~65% feature importance), consistent with established clinical evidence.
+
+---
+
+## Methodological Choices
+
+- **No PCA**: expert-driven reduction preserves clinical interpretability
+- **Train/test split before feature engineering**: strict leakage prevention
+- **`class_weight='balanced'`**: handles class imbalance without synthetic data generation
+- **Correlation weighting** used as a pragmatic signal-strength heuristic, not a causal claim
+- **DummyClassifier baseline**: defines a performance floor for clinical relevance assessment
+
+---
+
+## Stacks evaluation dashboard: confusion matrix, ROC curve, feature importance
 - Exports `readmission_model.pkl`
 
 ---
