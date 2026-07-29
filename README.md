@@ -45,8 +45,6 @@ hospital-readmission-diabetes/
 
 ---
 
----
-
 ## Reproduce
 
 ### 1. Clone the repository
