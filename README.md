@@ -151,55 +151,17 @@ Each dimension is built by MinMax scaling on the training set, then correlation-
 
 ---
 
-## Stacks evaluation dashboard: confusion matrix, ROC curve, feature importance
-- Exports `readmission_model.pkl`
-
----
-
-## Clinical Framework
-
-The 7 original numeric variables are reduced to 3 interpretable dimensions:
-
-| Dimension                | Variables                                                   | Clinical Concept                        |
-| ------------------------ | ----------------------------------------------------------- | --------------------------------------- |
-| **Pathological Terrain** | `number_diagnoses`                                          | Comorbidity burden (cf. Charlson score) |
-| **Chronic Instability**  | `number_inpatient`, `number_emergency`, `number_outpatient` | Past healthcare utilisation             |
-| **Episode Severity**     | `time_in_hospital`, `num_lab_procedures`, `num_medications` | Current episode intensity               |
-
-Each dimension is built by MinMax scaling on the training set, then correlation-weighted aggregation.
-
----
-
-## Results
-
-| Metric                      | Value                               |
-| --------------------------- | ----------------------------------- |
-| Naive baseline AUC          | 0.500                               |
-| Random Forest AUC (CV)      | 0.647 ± 0.002                       |
-| Random Forest AUC (test set)| **0.649**                           |
-| Train set                   | 81,412 patients                     |
-| Test set                    | 20,354 patients                     |
-| Class balance               | 54% not readmitted / 46% readmitted |
-
-**Chronic Instability** (prior healthcare utilisation) is the strongest predictor (~65% feature importance), consistent with established clinical evidence.
-
----
-
-## Methodological Choices
-
-- **No PCA** — expert-driven reduction preserves clinical interpretability
-- **Train/test split before feature engineering** — strict leakage prevention
-- **`class_weight='balanced'`** — handles class imbalance without synthetic data generation
-- **Correlation weighting** used as a pragmatic signal-strength heuristic, not a causal claim
-- **DummyClassifier baseline** — defines a performance floor for clinical relevance assessment
-
----
-
 ## Stack
 
 ```
 Python 3.x · pandas · numpy · scikit-learn · matplotlib · seaborn · joblib · streamlit
 ```
+
+---
+
+## License
+
+Released under the [MIT License](LICENSE). The *Diabetes 130-US Hospitals* dataset is distributed by the UCI Machine Learning Repository under its own [terms of use](https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008); it is downloaded separately and not redistributed here.
 
 ---
 
@@ -213,3 +175,10 @@ Dataset: [UCI Machine Learning Repository #296](https://archive.ics.uci.edu/data
 ## See also
 
 👉 [patient-pathway-analysis](https://github.com/juliettebm/patient-pathway-analysis) — Healthcare analytics dashboard & statistical inference module (Python, SQL, Streamlit)
+
+---
+
+## Author
+
+**Juliette Bouli-Mengue**
+Clinical Research to Data Science
