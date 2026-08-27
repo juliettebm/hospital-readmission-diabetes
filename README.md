@@ -174,7 +174,7 @@ Dataset: [UCI Machine Learning Repository #296](https://archive.ics.uci.edu/data
 
 ## See also
 
-👉 [patient-pathway-analysis](https://github.com/juliettebm/patient-pathway-analysis) — Healthcare analytics dashboard & statistical inference module (Python, SQL, Streamlit)
+👉 [patient-pathway-analysis](https://github.com/juliettebm/patient-pathway-analysis): Healthcare analytics dashboard & statistical inference module (Python, SQL, Streamlit)
 
 ---
 
