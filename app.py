@@ -16,26 +16,45 @@ st.set_page_config(
 # Titre principal et contexte clinique
 st.title("🧬 Aide à la Décision Clinique : Risque de Réadmission")
 st.markdown("""
-Cette interface permet d'évaluer le risque de réadmission à 30 jours d'un patient diabétique 
-en se basant sur un modèle prédictif de type **Random Forest** (Validation Croisée ROC-AUC : 0.644).
-*L'objectif est d'identifier les profils fragiles dès l'admission ou avant la sortie de l'hôpital.*
+Cette interface estime le risque de **réadmission (tous délais confondus)** d'un patient diabétique
+avec un modèle **Random Forest** (ROC-AUC ≈ 0.65 sur le jeu de test, découpage par patient).
+*Démonstration pédagogique : la performance est modeste et l'outil n'est pas destiné à un usage clinique.*
 """)
 
 # =====================================================================
-# CHARGEMENT DU MODÈLE SIMULÉ OU SÉRIALISÉ
+# CHARGEMENT DU MODÈLE ET DES PARAMÈTRES DE FEATURE ENGINEERING
 # =====================================================================
-# Pour éviter que l'application ne plante si le fichier .pkl n'est pas dans le bon dossier,
-# on intègre une sécurité avec la logique exacte entraînée précédemment.
-@st.cache_resource
-def load_clinical_model():
-    model_path = "models/readmission_model.pkl"
-    if os.path.exists(model_path):
-        return joblib.load(model_path)
-    else:
-        # Solution de secours si le script est exécuté sans le fichier pkl
-        return None
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-model = load_clinical_model()
+
+@st.cache_resource
+def load_artifacts():
+    """Modèle + paramètres (scaler, poids) produits par les notebooks 02 et 03."""
+    model_path = os.path.join(BASE_DIR, "models", "readmission_model.pkl")
+    params_path = os.path.join(BASE_DIR, "models", "feature_params.pkl")
+    if not (os.path.exists(model_path) and os.path.exists(params_path)):
+        return None, None
+    return joblib.load(model_path), joblib.load(params_path)
+
+
+def build_dims(raw: dict, params: dict) -> pd.DataFrame:
+    """Reproduit `build_dims` du notebook 02 : MinMax (train) puis pondération par corrélation."""
+    scaler = params["scaler"]
+    cols = list(scaler.feature_names_in_)
+    scaled = scaler.transform(pd.DataFrame([raw])[cols])
+    scaled = pd.DataFrame(scaled, columns=cols).clip(0, 1)  # valeurs hors plage d'entraînement
+    return pd.DataFrame([{
+        "dim_terrain": scaled["number_diagnoses"].iloc[0],
+        "dim_instability": sum(scaled[c].iloc[0] * w for c, w in zip(params["cols_instab"], params["w_instab"])),
+        "dim_severity": sum(scaled[c].iloc[0] * w for c, w in zip(params["cols_sev"], params["w_sev"])),
+    }])
+
+
+model, params = load_artifacts()
+if model is None:
+    st.error("Modèle introuvable : exécutez les notebooks 01 à 03 (dossier `notebooks/`) "
+             "pour générer `models/readmission_model.pkl` et `models/feature_params.pkl`.")
+    st.stop()
 
 # =====================================================================
 # INTERFACE UTILISATEUR : SAISIE DES DONNÉES DU PATIENT
@@ -78,34 +97,22 @@ with col2:
 # =====================================================================
 st.markdown("---")
 
-# Calcul exact des dimensions selon ta logique validée
-dim_terrain = number_diagnoses
-dim_instabilite = number_inpatient + number_emergency + number_outpatient
-dim_severite = time_in_hospital + num_lab_procedures + num_medications
-
-# Création du DataFrame pour le modèle
-patient_data = pd.DataFrame([{
-    'dim_terrain': dim_terrain,
-    'dim_instabilite': dim_instabilite,
-    'dim_severite': dim_severite
-}])
+raw_inputs = {
+    "number_diagnoses": number_diagnoses,
+    "number_inpatient": number_inpatient,
+    "number_emergency": number_emergency,
+    "number_outpatient": number_outpatient,
+    "time_in_hospital": time_in_hospital,
+    "num_lab_procedures": num_lab_procedures,
+    "num_medications": num_medications,
+}
+patient_data = build_dims(raw_inputs, params)
+n_contacts = number_inpatient + number_emergency + number_outpatient
 
 # Bouton de déclenchement de l'analyse
 if st.button("🚀 Calculer le Risque de Réadmission", type="primary"):
-    
-    # Simulation de la prédiction si le modèle pkl est manquant pour la démo, 
-    # ou utilisation du vrai modèle s'il existe.
-    if model is not None:
-        # Le modèle attend exactement les colonnes dans l'ordre d'entraînement
-        proba = model.predict_proba(patient_data)[0][1] * 100
-    else:
-        # Logique mathématique d'approximation basée sur tes coefficients de corrélation
-        # (Permet à la démo Streamlit de fonctionner partout sans dépendance lourde)
-        base_risk = 46.0  # Taux moyen
-        risk_instabilite = dim_instabilite * 4.5
-        risk_terrain = (dim_terrain - 5) * 1.2
-        risk_severite = (dim_severite - 50) * 0.1
-        proba = min(max(base_risk + risk_instabilite + risk_terrain + risk_severite, 10.0), 95.0)
+
+    proba = model.predict_proba(patient_data[list(model.feature_names_in_)])[0][1] * 100
 
     # Affichage du résultat sous forme de jauge ou de score visuel
     st.header("📊 Résultat de l'Évaluation")
@@ -119,16 +126,21 @@ if st.button("🚀 Calculer le Risque de Réadmission", type="primary"):
         st.error(f"**Risque Élevé : {proba:.1f}%**")
 
     # =====================================================================
-    # EXPLICABILITÉ CLINIQUE (Le point fort de ton projet)
+    # EXPLICABILITÉ : importances du modèle entraîné (pas de valeur codée en dur)
     # =====================================================================
-    st.subheader("💡 Éléments d'explicabilité pour le clinicien")
-    
-    # Justification dynamique basée sur la Feature Importance de ton modèle (65.7% / 19.3% / 15%)
-    if dim_instabilite > 2:
-        st.markdown(f"⚠️ **Facteur prédominant :** Le patient présente un score d'instabilité chronique élevé ({dim_instabilite} contacts récents). Conformément aux conclusions de notre modèle, l'historique d'utilisation du système de soins pèse pour **65.7%** dans la décision algorithmatique.")
+    st.subheader("💡 Éléments d'explicabilité")
+    importances = dict(zip(model.feature_names_in_, model.feature_importances_))
+    st.markdown(
+        f"Importances globales du modèle : instabilité chronique **{importances['dim_instability']:.0%}**, "
+        f"sévérité de l'épisode **{importances['dim_severity']:.0%}**, terrain pathologique **{importances['dim_terrain']:.0%}**."
+    )
+    if n_contacts > 2:
+        st.markdown(f"⚠️ Le patient présente {n_contacts} contacts récents avec le système de soins : "
+                    "c'est la dimension la plus influente du modèle.")
     else:
-        st.markdown("🔹 **Profil stable :** Le recours antérieur aux soins est faible, ce qui tire le risque vers le bas.")
-        
-    st.markdown(f"🔍 **Détail des scores agrégés :**")
-    st.write(f"- **Axe Terrain (Comorbidités) :** {dim_terrain} diagnostics actifs.")
-    st.write(f"- **Axe Sévérité (Charge de soins actuelle) :** Score combiné de {dim_severite} (cumul des jours, examens et {num_medications} molécules prescrites).")
+        st.markdown("🔹 Le recours antérieur aux soins est faible, ce qui tire le risque vers le bas.")
+    st.write("**Scores des dimensions (0 à 1) :** "
+             f"terrain {patient_data['dim_terrain'].iloc[0]:.2f} · "
+             f"instabilité {patient_data['dim_instability'].iloc[0]:.2f} · "
+             f"sévérité {patient_data['dim_severity'].iloc[0]:.2f}")
+    st.caption("Estimation statistique à visée pédagogique, non validée cliniquement.")
