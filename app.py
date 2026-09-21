@@ -1,8 +1,7 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
-import joblib
-import os
+from pathlib import Path
+
+from src.readmission import ArtifactCompatibilityError, build_dims, load_artifacts
 
 # =====================================================================
 # CONFIGURATION DE LA PAGE
@@ -14,9 +13,9 @@ st.set_page_config(
 )
 
 # Titre principal et contexte clinique
-st.title("🧬 Aide à la Décision Clinique : Risque de Réadmission")
+st.title("🧬 Démonstrateur Éducatif : Risque de Réadmission")
 st.markdown("""
-Cette interface estime le risque de **réadmission (tous délais confondus)** d'un patient diabétique
+Cette interface produit un score de **réadmission (tous délais confondus)** pour un patient diabétique
 avec un modèle **Random Forest** (ROC-AUC ≈ 0.65 sur le jeu de test, découpage par patient).
 *Démonstration pédagogique : la performance est modeste et l'outil n'est pas destiné à un usage clinique.*
 """)
@@ -24,36 +23,19 @@ avec un modèle **Random Forest** (ROC-AUC ≈ 0.65 sur le jeu de test, découpa
 # =====================================================================
 # CHARGEMENT DU MODÈLE ET DES PARAMÈTRES DE FEATURE ENGINEERING
 # =====================================================================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = Path(__file__).resolve().parent
 
 
 @st.cache_resource
-def load_artifacts():
+def load_model_artifacts():
     """Modèle + paramètres (scaler, poids) produits par les notebooks 02 et 03."""
-    model_path = os.path.join(BASE_DIR, "models", "readmission_model.pkl")
-    params_path = os.path.join(BASE_DIR, "models", "feature_params.pkl")
-    if not (os.path.exists(model_path) and os.path.exists(params_path)):
-        return None, None
-    return joblib.load(model_path), joblib.load(params_path)
+    return load_artifacts(BASE_DIR / "models")
 
 
-def build_dims(raw: dict, params: dict) -> pd.DataFrame:
-    """Reproduit `build_dims` du notebook 02 : MinMax (train) puis pondération par corrélation."""
-    scaler = params["scaler"]
-    cols = list(scaler.feature_names_in_)
-    scaled = scaler.transform(pd.DataFrame([raw])[cols])
-    scaled = pd.DataFrame(scaled, columns=cols).clip(0, 1)  # valeurs hors plage d'entraînement
-    return pd.DataFrame([{
-        "dim_terrain": scaled["number_diagnoses"].iloc[0],
-        "dim_instability": sum(scaled[c].iloc[0] * w for c, w in zip(params["cols_instab"], params["w_instab"])),
-        "dim_severity": sum(scaled[c].iloc[0] * w for c, w in zip(params["cols_sev"], params["w_sev"])),
-    }])
-
-
-model, params = load_artifacts()
-if model is None:
-    st.error("Modèle introuvable : exécutez les notebooks 01 à 03 (dossier `notebooks/`) "
-             "pour générer `models/readmission_model.pkl` et `models/feature_params.pkl`.")
+try:
+    model, params = load_model_artifacts()
+except ArtifactCompatibilityError as exc:
+    st.error(f"Artefacts du modèle indisponibles ou incompatibles : {exc}")
     st.stop()
 
 # =====================================================================
@@ -106,24 +88,20 @@ raw_inputs = {
     "num_lab_procedures": num_lab_procedures,
     "num_medications": num_medications,
 }
-patient_data = build_dims(raw_inputs, params)
+patient_data = build_dims(raw_inputs, params, clip=True)
 n_contacts = number_inpatient + number_emergency + number_outpatient
 
 # Bouton de déclenchement de l'analyse
-if st.button("🚀 Calculer le Risque de Réadmission", type="primary"):
+if st.button("🚀 Calculer le score du modèle", type="primary"):
 
     proba = model.predict_proba(patient_data[list(model.feature_names_in_)])[0][1] * 100
 
-    # Affichage du résultat sous forme de jauge ou de score visuel
-    st.header("📊 Résultat de l'Évaluation")
-    
-    # Choix de la couleur en fonction du niveau de risque
-    if proba < 40:
-        st.success(f"**Risque Faible : {proba:.1f}%**")
-    elif proba < 65:
-        st.warning(f"**Risque Modéré : {proba:.1f}%**")
-    else:
-        st.error(f"**Risque Élevé : {proba:.1f}%**")
+    st.header("📊 Résultat du modèle")
+    st.metric("Score de réadmission — tous délais confondus", f"{proba:.1f}%")
+    st.warning(
+        "Ce score n'est pas une probabilité clinique validée : le modèle n'a pas encore "
+        "fait l'objet d'une étude de calibration ni d'une validation externe."
+    )
 
     # =====================================================================
     # EXPLICABILITÉ : importances du modèle entraîné (pas de valeur codée en dur)

@@ -1,0 +1,13 @@
+{
+  "target": "any readmission (<30 or >30 days)",
+  "baseline_auc": 0.500,
+  "cv_auc_mean": 0.648,
+  "cv_auc_std": 0.002,
+  "test_auc": 0.649,
+  "sensitivity": 0.512,
+  "specificity": 0.711,
+  "train_encounters": 81613,
+  "test_encounters": 20153,
+  "train_patients": 57214,
+  "test_patients": 14304
+}

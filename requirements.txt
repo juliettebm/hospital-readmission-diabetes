@@ -1,7 +1,7 @@
-pandas>=2.0
-numpy>=1.24
-matplotlib
-seaborn
-scikit-learn>=1.9  # pickled model was saved with 1.9
-joblib
-streamlit>=1.30
+pandas==2.3.3
+numpy==2.5.3
+matplotlib==3.11.2
+seaborn==0.13.2
+scikit-learn==1.9.1  # exact version used to serialize the bundled model
+joblib==1.6.0
+streamlit==1.64.0
